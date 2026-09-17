@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Contra Costa Geography Trainer V10</title>
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.7.1/dist/maplibre-gl.css"><link rel="stylesheet" href="styles.css"></head>
+<body><header class="top"><div><h1>Contra Costa County Geography Trainer</h1><p>V10 · selectable quiz curriculum · label-free quiz map · 2026 U.S. Census city boundaries</p></div></header>
+<main class="layout"><aside class="side">
+<section><h2>Mode</h2><div class="two"><button id="study" class="btn active">Study Mode</button><button id="quiz" class="btn">Quiz Mode</button></div></section>
+<section><h2>Study & Quiz Pool</h2>
+<label><input id="cityDots" type="checkbox" checked> <span><b>Incorporated cities</b><small> — 19 tested</small></span></label>
+<label><input id="testedDots" type="checkbox" checked> <span><b>Tested unincorporated</b><small> — 25 tested</small></span></label>
+<label><input id="suppDots" type="checkbox"> <span><b>Additional unincorporated</b><small> — extra knowledge</small></span></label>
+<label><input id="surroundDots" type="checkbox"> <span><b>Surrounding locations</b><small> — 24 nearby cities/communities/islands</small></span></label>
+<label><input id="countyDots" type="checkbox"> <span><b>Counties</b><small> — 5 regional counties</small></span></label>
+<div class="poolcount">Quiz pool: <strong id="poolCount">44</strong> locations</div>
+</section>
+<section><h2>Map Display</h2><label><input id="cityBounds" type="checkbox" checked> City boundaries</label><label><input id="countyBound" type="checkbox" checked> Contra Costa boundary</label><label><input id="regionalCountyBounds" type="checkbox"> Regional county boundaries</label><label><input id="labels" type="checkbox" checked> Location labels <small>(Study only)</small></label></section>
+<section id="quizbox" hidden><h2>Quiz</h2><div class="question">Find:<strong id="target">—</strong><span id="feedback"></span></div><div class="stats"><span id="score">0 / 0</span><span id="accuracy">—</span></div><div class="progressline"><span id="progress">0 completed</span></div><button id="newq" class="btn">New Question</button><button id="skip" class="btn secondary">Skip</button><button id="restart" class="btn secondary">Restart Quiz Progress</button></section>
+<section><h2>Map</h2><button id="reset" class="btn">Zoom to County</button><label class="range">City fill opacity <input id="opacity" type="range" min="0" max="65" value="30"></label></section>
+<p class="note">Quiz Mode removes basemap place/road labels and all trainer labels while keeping roads, water, city outlines and the county outline. Correct answers turn gold and stay completed for the current round. Pink dots are supplemental locations; orange dots are surrounding locations; purple dots represent counties. Every selected category is added to the quiz pool.</p>
+</aside><section class="mapwrap"><div class="maphead"><strong>Contra Costa County, California</strong><span id="status">Loading map…</span></div><div id="map"></div><div class="legend"><b>Legend</b><span><i class="box"></i> 2026 Census city boundary</span><span><i class="dot city"></i> Incorporated city</span><span><i class="dot tested"></i> Tested unincorporated</span><span><i class="dot supplemental"></i> Additional unincorporated</span><span><i class="dot surrounding"></i> Surrounding location</span><span><i class="dot county"></i> County</span><span><i class="dot completed"></i> Correct / completed</span><span><i class="line"></i> County boundary</span></div></section></main>
+<script src="https://unpkg.com/maplibre-gl@5.7.1/dist/maplibre-gl.js"></script><script src="data.js"></script><script src="app.js"></script></body></html>
