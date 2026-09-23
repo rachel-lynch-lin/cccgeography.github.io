@@ -1,25 +1,19 @@
-Contra Costa County Geography Trainer V10
+Contra Costa County Geography Trainer V11
 
-Run locally:
-1. Extract this ZIP.
-2. Open Command Prompt in this folder.
-3. Run: py -m http.server 8000
-4. Open http://localhost:8000
-5. Stop with Ctrl+C.
+Host these files on GitHub Pages or run locally with:
+  py -m http.server 8000
+then open http://localhost:8000
 
-V10 changes:
-- Kensington moved to Tested Unincorporated (25 tested unincorporated; 44 required locations with all 19 incorporated cities).
-- Added Rossmoor, Marsh Creek Springs, Delta Coves, Browns Island, Valona, Tormey, Bixler, Werner, and Orwood to Additional Unincorporated.
-- Added Surrounding Locations category (24 locations) and Counties category (5 counties).
-- Category checkboxes control BOTH map visibility and quiz pool.
-- Added optional Census regional county boundary layer.
-- Quiz mode suppresses basemap/trainer text labels; correct answers turn gold.
+V11 adds:
+- Study List mode with numbered alphabetical lists by quiz pool
+- Major highways and major roadways quiz pools
+- Bridge and bodies-of-water pools
+- Expanded unincorporated/surrounding/county locations
+- End-of-quiz Review / Study Next list that records wrong selections
+- Correct answers remain gold for the round
 
-Naming notes:
-- “Bexler” was normalized to “Bixler,” matching Contra Costa County map labeling (“Bixler Tract”).
-- “San Quinten” was normalized to “San Quentin.”
+Road/highway overlays use the live OpenFreeMap vector road data. Their availability depends on the road-name/ref attributes in the live map style. If a route cannot be selected, note it for V12 so its alias/filter can be adjusted.
 
-Data notes:
-- Incorporated city and county polygons are loaded online from U.S. Census TIGERweb.
-- Basemap is loaded online through OpenFreeMap/MapLibre.
-- Point markers are study reference points; some small neighborhoods, tracts, islands, and historic localities do not have official polygon boundaries.
+Richmond remains one incorporated-city entry in V11. The proposed four-part Richmond split was not added because the instructor's intended four section names have not yet been confirmed; this avoids teaching an invented subdivision.
+
+City/county polygons are loaded from U.S. Census TIGERweb. The basemap requires internet access.
