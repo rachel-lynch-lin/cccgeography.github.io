@@ -3,3 +3,17 @@
 
 .dot.surrounding{background:#e67e22}.dot.county{background:#7c4dcc}
 .three{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}.mainpanel{min-width:0}.studylist{background:#fff;border:1px solid #cad9e5;border-radius:10px;padding:18px}.studylist>p{color:#607586}.studylist #studyLists{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}.studylist #studyLists section{border:1px solid #d6e1e9;border-radius:8px;padding:10px 14px;background:#f9fcfe}.studylist h3{margin:0 0 8px;color:#075184}.studylist ol{margin:0;padding-left:28px;columns:1}.studylist li{padding:2px 0}.review{font-size:12px;line-height:1.45;max-height:180px;overflow:auto;background:#fff;border:1px solid #d7e2ea;border-radius:6px;padding:8px}.review div{padding:4px 0;border-bottom:1px solid #edf2f5}.dot.bridge{background:#15a7a1}.dot.water{background:#2980b9}.route{width:20px;border-top:4px solid #d6428b}@media(max-width:800px){.three{grid-template-columns:1fr}.studylist #studyLists{grid-template-columns:1fr}}
+.dot.road{background:#d6428b}
+.mobile-overlay{display:none}
+@media(max-width:600px){
+  .top{padding:9px 12px}.top h1{font-size:21px}.top p{font-size:12px}
+  .layout{display:flex;flex-direction:column;padding:4px;gap:6px}
+  .mainpanel{order:1}.side{order:2}
+  .maphead{padding:6px 9px;font-size:13px}.maphead span{display:none}
+  #map{height:68vh;min-height:430px;border-radius:0 0 8px 8px}
+  .legend{display:none}
+  .mobile-overlay{display:block;position:absolute;z-index:4;left:52px;top:48px;max-width:calc(100% - 66px);background:rgba(255,255,255,.88);border:1px solid rgba(86,112,131,.65);border-radius:8px;padding:7px 10px;pointer-events:none;backdrop-filter:blur(3px);box-shadow:0 2px 7px rgba(0,0,0,.14)}
+  .mobile-overlay[hidden]{display:none}.mobile-overlay small,.mobile-overlay strong,.mobile-overlay span{display:block}.mobile-overlay small{font-size:10px;letter-spacing:.08em;color:#607586;font-weight:800}.mobile-overlay strong{font-size:18px;color:#075184;line-height:1.2}.mobile-overlay span{font-size:11px;color:#536b7d;margin-top:2px}
+  .side input[type=checkbox]{width:22px;height:22px}.side label{min-height:38px}.btn{min-height:44px}
+  .three{grid-template-columns:repeat(3,1fr)}
+}
