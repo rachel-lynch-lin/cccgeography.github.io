@@ -1,19 +1,14 @@
-Contra Costa County Geography Trainer V11
+Contra Costa County Geography Trainer V12
 
-Host these files on GitHub Pages or run locally with:
-  py -m http.server 8000
-then open http://localhost:8000
+Upload the CONTENTS of this folder to the root of the existing GitHub Pages repository, replacing the V11 files.
 
-V11 adds:
-- Study List mode with numbered alphabetical lists by quiz pool
-- Major highways and major roadways quiz pools
-- Bridge and bodies-of-water pools
-- Expanded unincorporated/surrounding/county locations
-- End-of-quiz Review / Study Next list that records wrong selections
-- Correct answers remain gold for the round
+V12 changes:
+- Desktop layout/functionality intentionally preserved from V11.
+- Phone-width layout adds a semi-transparent quiz prompt over the map.
+- In Study mode on phones, tapping a dot shows its name/category in the map overlay; tapping another replaces it.
+- Major roadways reverted from line selection to representative study dots.
+- Richmond is represented as Richmond 1, Richmond 2, Richmond 3, and Richmond 4 study identifiers; these are not official district names.
+- Corrected/adjusted Antioch Bridge, San Ramon, Delta Coves, and Norris Canyon marker positions.
+- Highways remain route-line questions.
 
-Road/highway overlays use the live OpenFreeMap vector road data. Their availability depends on the road-name/ref attributes in the live map style. If a route cannot be selected, note it for V12 so its alias/filter can be adjusted.
-
-Richmond remains one incorporated-city entry in V11. The proposed four-part Richmond split was not added because the instructor's intended four section names have not yet been confirmed; this avoids teaching an invented subdivision.
-
-City/county polygons are loaded from U.S. Census TIGERweb. The basemap requires internet access.
+The trainer uses MapLibre/OpenFreeMap plus U.S. Census TIGERweb boundaries and therefore needs internet access.
