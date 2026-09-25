@@ -131,8 +131,8 @@ window.LOCATIONS = [
 
   {
     name: "Pleasant Hill",
-    lat: 37.948,
-    lon: -122.061,
+    lat: 37.95172079520568, 
+    lon: -122.07611427903475,
     group: "city"
   },
 
@@ -480,6 +480,14 @@ window.LOCATIONS = [
     lon: -121.6260,
     group: "supplemental"
   },
+
+
+  {
+    name: "Los Medanos College",
+    lat: 38.006006015755005, -121.86095793291612,
+    lon: -121.86095793291612,
+    group: "supplemental"
+   },
 
   {
     name: "Marsh Creek Springs",
@@ -831,7 +839,7 @@ window.LOCATIONS = [
    * ----------------------------------------------------------
    */
 
- {
+  {
     name: "I-80",
     lat: 37.994,
     lon: -122.304,
@@ -879,7 +887,6 @@ window.LOCATIONS = [
     lon: -122.044,
     group: "highway"
   },
-
 
 
   /*
