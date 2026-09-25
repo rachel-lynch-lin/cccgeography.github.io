@@ -67,7 +67,7 @@
   const completed = new Set();
 
   const review = new Map();
-console.log("Highways found:", DATA.filter(item => item.group === "highway"));
+
   /*
    * ------------------------------------------------------------
    * DATA
