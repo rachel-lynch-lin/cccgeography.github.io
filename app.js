@@ -1,9 +1,39 @@
 (() => {
   'use strict';
 
-  const DATA = window.LOCATIONS;
-  const CITY_NAMES = window.CITY_NAMES;
+  /*
+   * ============================================================
+   * CONTRA COSTA GEOGRAPHY TRAINER
+   * V12.2
+   *
+   * All quizable locations are handled exactly the same way.
+   *
+   * Cities
+   * Unincorporated communities
+   * Surrounding locations
+   * Counties
+   * Highways
+   * Bridges
+   * Major roadways
+   * Bodies of water
+   *
+   * Every location comes from window.LOCATIONS in data.js
+   * and is rendered as a point.
+   *
+   * There is NO separate route/line system.
+   * ============================================================
+   */
+
+  const DATA = window.LOCATIONS || [];
+  const CITY_NAMES = window.CITY_NAMES || [];
+
   const $ = id => document.getElementById(id);
+
+  /*
+   * ------------------------------------------------------------
+   * QUIZ / STUDY GROUPS
+   * ------------------------------------------------------------
+   */
 
   const GROUPS = [
     ['city', 'Incorporated cities'],
@@ -18,137 +48,136 @@
   ];
 
   /*
-   * V12.1 BUG FIX
-   *
-   * Highways are now represented by dots instead of MapLibre road lines.
-   * These representative points are stored here so data.js does not need
-   * to be changed for this bug-fix release.
+   * ------------------------------------------------------------
+   * APPLICATION STATE
+   * ------------------------------------------------------------
    */
-  const HIGHWAY_POINTS = [
-    {
-      name: 'I-80',
-      lat: 37.994,
-      lon: -122.304,
-      group: 'highway'
-    },
-    {
-      name: 'I-580',
-      lat: 37.931,
-      lon: -122.363,
-      group: 'highway'
-    },
-    {
-      name: 'I-680',
-      lat: 37.963,
-      lon: -122.069,
-      group: 'highway'
-    },
-    {
-      name: 'SR-4',
-      lat: 38.006,
-      lon: -121.958,
-      group: 'highway'
-    },
-    {
-      name: 'SR-24',
-      lat: 37.892,
-      lon: -122.122,
-      group: 'highway'
-    },
-    {
-      name: 'SR-160',
-      lat: 38.018,
-      lon: -121.752,
-      group: 'highway'
-    },
-    {
-      name: 'SR-242',
-      lat: 37.976,
-      lon: -122.044,
-      group: 'highway'
-    }
-  ];
 
   let mode = 'study';
+
   let target = null;
+
   let attempts = 0;
   let correct = 0;
+
   let boundariesLoaded = false;
+
   let wrongName = null;
 
   const completed = new Set();
+
   const review = new Map();
 
   /*
-   * Return all study items for a group.
+   * ------------------------------------------------------------
+   * DATA
    *
-   * Highways come from HIGHWAY_POINTS.
-   * Everything else comes from data.js.
+   * V12.2 IMPORTANT:
+   *
+   * There is NO special treatment for highways or roads here.
+   *
+   * Everything comes from LOCATIONS in data.js.
+   * ------------------------------------------------------------
    */
-  function items(group) {
-    if (group === 'highway') {
-      return HIGHWAY_POINTS.map(item => ({
-        ...item,
-        type: 'point'
-      }));
-    }
 
-    return DATA
-      .filter(item => item.group === group)
-      .map(item => ({
-        ...item,
-        type: 'point'
-      }));
+  function items(group) {
+    return DATA.filter(
+      item => item.group === group
+    );
   }
 
   /*
-   * Build quiz-pool checkboxes.
+   * ------------------------------------------------------------
+   * BUILD CATEGORY CHECKBOXES
+   * ------------------------------------------------------------
    */
-  $('poolChecks').innerHTML = GROUPS.map(([group, label], index) => {
-    return `
-      <label>
-        <input
-          data-group="${group}"
-          type="checkbox"
-          ${index < 2 ? 'checked' : ''}
-        >
-        <span>
-          <b>${label}</b>
-          <small> — ${items(group).length}</small>
-        </span>
-      </label>
-    `;
-  }).join('');
+
+  $('poolChecks').innerHTML = GROUPS
+    .map(([group, label], index) => {
+
+      const count = items(group).length;
+
+      return `
+        <label>
+          <input
+            data-group="${group}"
+            type="checkbox"
+            ${index < 2 ? 'checked' : ''}
+          >
+
+          <span>
+            <b>${label}</b>
+            <small> — ${count}</small>
+          </span>
+        </label>
+      `;
+    })
+    .join('');
+
+  /*
+   * ------------------------------------------------------------
+   * CHECKBOX / POOL HELPERS
+   * ------------------------------------------------------------
+   */
 
   function checked(group) {
-    return !!document.querySelector(
-      `input[data-group="${group}"]`
-    )?.checked;
+
+    const checkbox =
+      document.querySelector(
+        `input[data-group="${group}"]`
+      );
+
+    return !!checkbox?.checked;
   }
 
+
   function pool() {
-    return GROUPS.flatMap(([group]) => {
-      return checked(group) ? items(group) : [];
-    });
+
+    return GROUPS.flatMap(
+      ([group]) => {
+
+        if (!checked(group)) {
+          return [];
+        }
+
+        return items(group);
+      }
+    );
   }
 
   /*
+   * ------------------------------------------------------------
    * MAP
+   * ------------------------------------------------------------
    */
+
   const map = new maplibregl.Map({
+
     container: 'map',
-    style: 'https://tiles.openfreemap.org/styles/liberty',
-    center: [-121.98, 37.94],
+
+    style:
+      'https://tiles.openfreemap.org/styles/liberty',
+
+    center: [
+      -121.98,
+      37.94
+    ],
+
     zoom: 9.55,
+
     minZoom: 7.5,
+
     maxZoom: 17,
+
     attributionControl: true
   });
+
 
   map.addControl(
     new maplibregl.NavigationControl(),
     'top-left'
   );
+
 
   map.addControl(
     new maplibregl.ScaleControl({
@@ -159,167 +188,315 @@
   );
 
   /*
+   * ------------------------------------------------------------
    * CENSUS GIS
+   *
+   * City polygons and county boundaries are reference layers.
+   *
+   * They are NOT part of the quiz marker system.
+   * ------------------------------------------------------------
    */
-  const query = (base, where, fields) => {
+
+  function query(
+    base,
+    where,
+    fields
+  ) {
+
     return (
       base +
       '/query?where=' +
       encodeURIComponent(where) +
       '&outFields=' +
       encodeURIComponent(fields) +
-      '&returnGeometry=true&outSR=4326&f=geojson'
+      '&returnGeometry=true' +
+      '&outSR=4326' +
+      '&f=geojson'
     );
-  };
+  }
+
 
   const cityWhere =
     "STATE='06' AND BASENAME IN (" +
-    CITY_NAMES.map(name => "'" + name + "'").join(',') +
+    CITY_NAMES
+      .map(name => "'" + name + "'")
+      .join(',') +
     ')';
 
+
   const cityURL = query(
+
     'https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/Places_CouSub_ConCity_SubMCD/MapServer/4',
+
     cityWhere,
+
     'BASENAME,GEOID'
   );
+
 
   const countyURL = query(
+
     'https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/State_County/MapServer/1',
+
     "GEOID='06013'",
+
     'BASENAME,GEOID'
   );
+
 
   const regionalURL = query(
+
     'https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/State_County/MapServer/1',
+
     "GEOID IN ('06013','06095','06077','06001','06041','06067')",
+
     'BASENAME,GEOID'
   );
 
+  /*
+   * ------------------------------------------------------------
+   * FIND BOUNDS OF GEOJSON
+   * ------------------------------------------------------------
+   */
+
   function geoBounds(geojson) {
+
     const xs = [];
     const ys = [];
 
-    const walk = coordinates => {
+
+    function walk(coordinates) {
+
       if (
         Array.isArray(coordinates) &&
         typeof coordinates[0] === 'number'
       ) {
+
         xs.push(coordinates[0]);
         ys.push(coordinates[1]);
-      } else if (Array.isArray(coordinates)) {
+
+        return;
+      }
+
+
+      if (Array.isArray(coordinates)) {
+
         coordinates.forEach(walk);
       }
-    };
+    }
 
-    geojson.features.forEach(feature => {
-      walk(feature.geometry.coordinates);
-    });
+
+    geojson.features.forEach(
+      feature => {
+
+        if (feature.geometry) {
+
+          walk(
+            feature.geometry.coordinates
+          );
+        }
+      }
+    );
+
 
     if (!xs.length) {
       return null;
     }
 
+
     return [
-      [Math.min(...xs), Math.min(...ys)],
-      [Math.max(...xs), Math.max(...ys)]
+
+      [
+        Math.min(...xs),
+        Math.min(...ys)
+      ],
+
+      [
+        Math.max(...xs),
+        Math.max(...ys)
+      ]
     ];
   }
 
-  async function loadGIS() {
-    try {
-      const responses = await Promise.all([
-        fetch(cityURL),
-        fetch(countyURL),
-        fetch(regionalURL)
-      ]);
+  /*
+   * ------------------------------------------------------------
+   * LOAD CENSUS BOUNDARIES
+   * ------------------------------------------------------------
+   */
 
-      const data = await Promise.all(
-        responses.map(response => response.json())
+  async function loadGIS() {
+
+    try {
+
+      const responses =
+        await Promise.all([
+
+          fetch(cityURL),
+
+          fetch(countyURL),
+
+          fetch(regionalURL)
+        ]);
+
+
+      const data =
+        await Promise.all(
+
+          responses.map(
+            response => response.json()
+          )
+        );
+
+      /*
+       * CITY POLYGONS
+       */
+
+      map.addSource(
+        'cities',
+        {
+          type: 'geojson',
+          data: data[0]
+        }
       );
 
-      /*
-       * City polygons
-       */
-      map.addSource('cities', {
-        type: 'geojson',
-        data: data[0]
-      });
 
       map.addLayer({
+
         id: 'city-fill',
+
         type: 'fill',
+
         source: 'cities',
+
         paint: {
-          'fill-color': '#8fb8d8',
-          'fill-opacity': 0.30
+
+          'fill-color':
+            '#8fb8d8',
+
+          'fill-opacity':
+            0.30
         }
       });
 
+
       map.addLayer({
+
         id: 'city-outline',
+
         type: 'line',
+
         source: 'cities',
+
         paint: {
-          'line-color': '#394b59',
-          'line-width': 1.5
+
+          'line-color':
+            '#394b59',
+
+          'line-width':
+            1.5
         }
       });
 
       /*
-       * Regional county boundaries
+       * REGIONAL COUNTY BOUNDARIES
        */
-      map.addSource('regional-counties', {
-        type: 'geojson',
-        data: data[2]
-      });
+
+      map.addSource(
+        'regional-counties',
+        {
+          type: 'geojson',
+          data: data[2]
+        }
+      );
+
 
       map.addLayer({
-        id: 'regional-county-outline',
+
+        id:
+          'regional-county-outline',
+
         type: 'line',
-        source: 'regional-counties',
+
+        source:
+          'regional-counties',
+
         layout: {
-          visibility: 'none'
+
+          visibility:
+            'none'
         },
+
         paint: {
-          'line-color': '#7058a8',
-          'line-width': 2
+
+          'line-color':
+            '#7058a8',
+
+          'line-width':
+            2
         }
       });
 
       /*
-       * Contra Costa County boundary
+       * CONTRA COSTA COUNTY BOUNDARY
        */
-      map.addSource('county', {
-        type: 'geojson',
-        data: data[1]
-      });
+
+      map.addSource(
+        'county',
+        {
+          type: 'geojson',
+          data: data[1]
+        }
+      );
+
 
       map.addLayer({
+
         id: 'county-outline',
+
         type: 'line',
+
         source: 'county',
+
         paint: {
-          'line-color': '#102b42',
-          'line-width': 3
+
+          'line-color':
+            '#102b42',
+
+          'line-width':
+            3
         }
       });
 
-      const bounds = geoBounds(data[1]);
+
+      const bounds =
+        geoBounds(data[1]);
+
 
       if (bounds) {
-        map.fitBounds(bounds, {
-          padding: 30,
-          duration: 0
-        });
+
+        map.fitBounds(
+          bounds,
+          {
+            padding: 30,
+            duration: 0
+          }
+        );
       }
 
+
       boundariesLoaded = true;
+
 
       $('status').textContent =
         '2026 Census city/county boundaries loaded';
 
     } catch (error) {
-      console.error(error);
+
+      console.error(
+        'Census GIS load error:',
+        error
+      );
+
 
       $('status').textContent =
         'Census boundary service unavailable; map quiz still works';
@@ -327,820 +504,1672 @@
   }
 
   /*
-   * POINT DATA
+   * ============================================================
+   * POINT SYSTEM
    *
-   * V12.1:
-   * Cities, unincorporated areas, surrounding locations,
-   * counties, highways, bridges, roads, and water locations
-   * all use this same point system.
+   * THIS IS THE IMPORTANT V12.2 CHANGE.
+   *
+   * Every enabled item from data.js is converted into exactly
+   * the same GeoJSON Point feature.
+   *
+   * There is no:
+   *
+   * ROUTES
+   * routeTemplate
+   * syncRoutes
+   * route-hit
+   * route-open
+   * route-done
+   * highway line matching
+   * road line matching
+   *
+   * Everything is a point.
+   * ============================================================
    */
+
   function pointGeo() {
-    return {
-      type: 'FeatureCollection',
 
-      features: pool().map(point => ({
-        type: 'Feature',
+    const features =
+      pool().map(item => {
 
-        properties: {
-          name: point.name,
-          group: point.group,
+        let status = 'open';
 
-          status: completed.has(point.name)
-            ? 'done'
-            : wrongName === point.name
-              ? 'wrong'
-              : 'open'
-        },
 
-        geometry: {
-          type: 'Point',
-          coordinates: [
-            point.lon,
-            point.lat
-          ]
+        if (
+          completed.has(item.name)
+        ) {
+
+          status = 'done';
+
+        } else if (
+          wrongName === item.name
+        ) {
+
+          status = 'wrong';
         }
-      }))
+
+
+        return {
+
+          type: 'Feature',
+
+          properties: {
+
+            name:
+              item.name,
+
+            group:
+              item.group,
+
+            status:
+              status
+          },
+
+          geometry: {
+
+            type: 'Point',
+
+            coordinates: [
+
+              Number(item.lon),
+
+              Number(item.lat)
+            ]
+          }
+        };
+      });
+
+
+    return {
+
+      type:
+        'FeatureCollection',
+
+      features:
+        features
     };
   }
 
+  /*
+   * ------------------------------------------------------------
+   * POINT COLOR
+   *
+   * The only difference between categories is color.
+   *
+   * Rendering and quiz behavior are identical.
+   * ------------------------------------------------------------
+   */
+
   function syncPoints() {
-    const source = map.getSource('places');
+
+    const source =
+      map.getSource('places');
+
 
     if (source) {
-      source.setData(pointGeo());
+
+      source.setData(
+        pointGeo()
+      );
+
       return;
     }
 
-    map.addSource('places', {
-      type: 'geojson',
-      data: pointGeo()
-    });
+
+    map.addSource(
+      'places',
+      {
+
+        type: 'geojson',
+
+        data: pointGeo()
+      }
+    );
+
 
     map.addLayer({
+
       id: 'places',
+
       type: 'circle',
+
       source: 'places',
 
       paint: {
-        'circle-radius': 6.5,
+
+        'circle-radius':
+          isPhone()
+            ? 8.5
+            : 6.5,
+
 
         'circle-color': [
-          'match',
-          ['get', 'status'],
+
+          'case',
 
           /*
-           * Completed / wrong states override
-           * the normal category color.
+           * Completed
            */
-          'done',
+
+          [
+            '==',
+            ['get', 'status'],
+            'done'
+          ],
+
           '#f2b705',
 
-          'wrong',
-          '#d73027',
 
           /*
-           * Normal category colors
+           * Wrong selection
            */
+
+          [
+            '==',
+            ['get', 'status'],
+            'wrong'
+          ],
+
+          '#d73027',
+
+
+          /*
+           * Normal category color
+           */
+
           [
             'match',
+
             ['get', 'group'],
+
 
             'city',
             '#075fe4',
 
+
             'tested',
             '#07864c',
+
 
             'supplemental',
             '#df5ca8',
 
+
             'surrounding',
             '#e67e22',
+
 
             'county',
             '#7c4dcc',
 
-            /*
-             * Highway gets its own visible color.
-             */
+
             'highway',
             '#d85b2a',
+
 
             'bridge',
             '#15a7a1',
 
-            'water',
-            '#2980b9',
 
             'road',
             '#d6428b',
 
-            '#777'
+
+            'water',
+            '#2980b9',
+
+
+            '#777777'
           ]
         ],
 
-        'circle-stroke-color': '#fff',
-        'circle-stroke-width': 1.8
+
+        'circle-stroke-color':
+          '#ffffff',
+
+
+        'circle-stroke-width':
+          1.8
       }
     });
   }
 
   /*
-   * LABELS
+   * ------------------------------------------------------------
+   * TRAINER LABELS
+   * ------------------------------------------------------------
    */
+
   function syncLabels() {
-    if (map.getLayer('place-labels')) {
-      map.removeLayer('place-labels');
-    }
 
     if (
-      mode === 'study' &&
-      $('labels').checked &&
-      map.getSource('places')
+      map.getLayer('place-labels')
     ) {
-      map.addLayer({
-        id: 'place-labels',
-        type: 'symbol',
-        source: 'places',
 
-        layout: {
-          'text-field': ['get', 'name'],
-          'text-size': 12,
-          'text-offset': [0.8, 0],
-          'text-anchor': 'left'
-        },
-
-        paint: {
-          'text-color': '#173150',
-          'text-halo-color': 'rgba(255,255,255,.95)',
-          'text-halo-width': 1.5
-        }
-      });
+      map.removeLayer(
+        'place-labels'
+      );
     }
-  }
 
-  /*
-   * Hide the basemap's own text labels during Quiz Mode.
-   */
-  function setBasemapLabels(show) {
-    const layers = map.getStyle()?.layers || [];
 
-    layers.forEach(layer => {
-      if (
-        layer.id !== 'place-labels' &&
-        layer.type === 'symbol' &&
-        layer.layout &&
-        ('text-field' in layer.layout)
-      ) {
-        try {
-          map.setLayoutProperty(
-            layer.id,
-            'visibility',
-            show ? 'visible' : 'none'
-          );
-        } catch (error) {
-          // Ignore basemap layers that cannot be changed.
-        }
+    if (
+      mode !== 'study'
+    ) {
+
+      return;
+    }
+
+
+    if (
+      !$('labels').checked
+    ) {
+
+      return;
+    }
+
+
+    if (
+      !map.getSource('places')
+    ) {
+
+      return;
+    }
+
+
+    map.addLayer({
+
+      id:
+        'place-labels',
+
+      type:
+        'symbol',
+
+      source:
+        'places',
+
+      layout: {
+
+        'text-field':
+          ['get', 'name'],
+
+        'text-size':
+          12,
+
+        'text-offset':
+          [0.8, 0],
+
+        'text-anchor':
+          'left',
+
+        'text-allow-overlap':
+          false
+      },
+
+      paint: {
+
+        'text-color':
+          '#173150',
+
+        'text-halo-color':
+          'rgba(255,255,255,.95)',
+
+        'text-halo-width':
+          1.5
       }
     });
   }
 
   /*
-   * REFRESH MAP / UI
+   * ------------------------------------------------------------
+   * BASEMAP LABELS
+   *
+   * Study:
+   * show normal map labels.
+   *
+   * Quiz:
+   * hide them.
+   * ------------------------------------------------------------
    */
-  function refresh() {
-    syncPoints();
-    syncLabels();
 
-    $('poolCount').textContent = pool().length;
+  function setBasemapLabels(show) {
+
+    const style =
+      map.getStyle();
+
+
+    const layers =
+      style?.layers || [];
+
+
+    layers.forEach(layer => {
+
+      if (
+        layer.id ===
+        'place-labels'
+      ) {
+
+        return;
+      }
+
+
+      if (
+        layer.type !==
+        'symbol'
+      ) {
+
+        return;
+      }
+
+
+      if (
+        !layer.layout
+      ) {
+
+        return;
+      }
+
+
+      if (
+        !(
+          'text-field'
+          in layer.layout
+        )
+      ) {
+
+        return;
+      }
+
+
+      try {
+
+        map.setLayoutProperty(
+
+          layer.id,
+
+          'visibility',
+
+          show
+            ? 'visible'
+            : 'none'
+        );
+
+      } catch (error) {
+
+        /*
+         * Some basemap layers may not allow
+         * modification. Ignore those layers.
+         */
+      }
+    });
+  }
+
+  /*
+   * ------------------------------------------------------------
+   * REFRESH
+   * ------------------------------------------------------------
+   */
+
+  function refresh() {
+
+    if (
+      map.loaded()
+    ) {
+
+      syncPoints();
+
+      syncLabels();
+    }
+
+
+    $('poolCount').textContent =
+      pool().length;
+
 
     updateProgress();
+
     renderStudyLists();
+
     updateMobileOverlay();
   }
 
   /*
-   * MOBILE UI
+   * ------------------------------------------------------------
+   * PHONE DETECTION
+   * ------------------------------------------------------------
    */
+
   function isPhone() {
+
     return window.matchMedia(
       '(max-width: 600px)'
     ).matches;
   }
 
-  function updateMobileOverlay(studyItem) {
-    const box = $('mobileOverlay');
+  /*
+   * ------------------------------------------------------------
+   * MOBILE OVERLAY
+   * ------------------------------------------------------------
+   */
+
+  function updateMobileOverlay(
+    studyItem = null
+  ) {
+
+    const box =
+      $('mobileOverlay');
+
 
     if (!box) {
       return;
     }
 
-    /*
-     * Desktop remains exactly like the original V12/V11 layout.
-     */
-    if (!isPhone() || mode === 'list') {
+
+    if (
+      !isPhone() ||
+      mode === 'list'
+    ) {
+
       box.hidden = true;
+
       return;
     }
 
-    box.hidden = false;
 
-    if (mode === 'quiz') {
+    if (
+      mode === 'quiz'
+    ) {
+
+      box.hidden = false;
+
       box.className =
         'mobile-overlay quiz-overlay';
 
+
+      const completedCount =
+        pool().filter(
+          item =>
+            completed.has(
+              item.name
+            )
+        ).length;
+
+
       box.innerHTML = `
-        <small>QUIZ</small>
+
+        <small>
+          QUIZ
+        </small>
+
         <strong>
-          Find: ${target ? target.name : '—'}
-        </strong>
-        <span>
+          Find:
           ${
-            pool().filter(item =>
-              completed.has(item.name)
-            ).length
+            target
+              ? target.name
+              : '—'
           }
-          of ${pool().length} completed
+        </strong>
+
+        <span>
+          ${completedCount}
+          of
+          ${pool().length}
+          completed
         </span>
       `;
 
       return;
     }
 
-    if (studyItem) {
+
+    if (
+      mode === 'study' &&
+      studyItem
+    ) {
+
       const groupLabel =
         GROUPS.find(
           ([group]) =>
-            group === studyItem.group
-        )?.[1] || studyItem.group;
+            group ===
+            studyItem.group
+        )?.[1]
+        ||
+        studyItem.group;
+
+
+      box.hidden = false;
 
       box.className =
         'mobile-overlay study-overlay';
 
+
       box.innerHTML = `
-        <small>STUDY</small>
-        <strong>${studyItem.name}</strong>
-        <span>${groupLabel}</span>
+
+        <small>
+          STUDY
+        </small>
+
+        <strong>
+          ${studyItem.name}
+        </strong>
+
+        <span>
+          ${groupLabel}
+        </span>
       `;
 
       return;
     }
 
+
     box.hidden = true;
   }
 
   /*
-   * QUIZ
+   * ------------------------------------------------------------
+   * AVAILABLE QUESTIONS
+   * ------------------------------------------------------------
    */
+
   function available() {
+
     return pool().filter(
-      item => !completed.has(item.name)
+      item =>
+        !completed.has(
+          item.name
+        )
     );
   }
 
-  function newQuestion() {
-    const currentPool = pool();
-    const remaining = available();
+  /*
+   * ------------------------------------------------------------
+   * NEW QUESTION
+   * ------------------------------------------------------------
+   */
 
-    if (!currentPool.length) {
+  function newQuestion() {
+
+    const currentPool =
+      pool();
+
+
+    const remaining =
+      available();
+
+
+    if (
+      !currentPool.length
+    ) {
+
       target = null;
+
+
       $('target').textContent =
         'No items enabled';
 
+
+      $('feedback').textContent =
+        'Select at least one category.';
+
+
       updateMobileOverlay();
+
       return;
     }
 
-    if (!remaining.length) {
+
+    if (
+      !remaining.length
+    ) {
+
       target = null;
+
 
       $('target').textContent =
         'Round complete!';
 
+
       $('feedback').innerHTML =
+
         '<span class="good">' +
+
         'Review your Study Next list below.' +
+
         '</span>';
 
+
       updateMobileOverlay();
+
       return;
     }
 
+
+    const randomIndex =
+      Math.floor(
+        Math.random() *
+        remaining.length
+      );
+
+
     target =
-      remaining[
-        Math.floor(
-          Math.random() *
-          remaining.length
-        )
-      ];
+      remaining[randomIndex];
+
 
     $('target').textContent =
       target.name;
 
-    $('feedback').textContent = '';
+
+    $('feedback').textContent =
+      '';
+
 
     updateMobileOverlay();
   }
 
   /*
-   * MODE SELECTION
+   * ------------------------------------------------------------
+   * MODE
+   * ------------------------------------------------------------
    */
-  function setMode(newMode) {
-    mode = newMode;
 
-    $('study').classList.toggle(
-      'active',
-      newMode === 'study'
-    );
+  function setMode(
+    newMode
+  ) {
 
-    $('quiz').classList.toggle(
-      'active',
-      newMode === 'quiz'
-    );
+    mode =
+      newMode;
 
-    $('listMode').classList.toggle(
-      'active',
-      newMode === 'list'
-    );
+
+    $('study')
+      .classList
+      .toggle(
+        'active',
+        newMode === 'study'
+      );
+
+
+    $('quiz')
+      .classList
+      .toggle(
+        'active',
+        newMode === 'quiz'
+      );
+
+
+    $('listMode')
+      .classList
+      .toggle(
+        'active',
+        newMode === 'list'
+      );
+
 
     $('quizbox').hidden =
       newMode !== 'quiz';
 
+
     $('mapPanel').hidden =
       newMode === 'list';
+
 
     $('studyPanel').hidden =
       newMode !== 'list';
 
+
     $('labels').disabled =
       newMode === 'quiz';
 
-    if (newMode !== 'list') {
-      map.resize();
 
-      setBasemapLabels(
-        newMode === 'study'
-      );
+    if (
+      newMode === 'list'
+    ) {
 
-      syncLabels();
+      updateMobileOverlay();
 
-      if (newMode === 'quiz') {
-        newQuestion();
-      } else {
-        updateMobileOverlay();
-      }
+      renderStudyLists();
+
+      return;
+    }
+
+
+    map.resize();
+
+
+    setBasemapLabels(
+      newMode === 'study'
+    );
+
+
+    syncLabels();
+
+
+    if (
+      newMode === 'quiz'
+    ) {
+
+      newQuestion();
 
     } else {
+
       updateMobileOverlay();
     }
+
 
     renderStudyLists();
   }
 
   /*
-   * REVIEW / STUDY NEXT
+   * ------------------------------------------------------------
+   * REVIEW LIST
+   * ------------------------------------------------------------
    */
-  function markReview(question, wrong) {
-    if (!review.has(question)) {
+
+  function markReview(
+    question,
+    wrong
+  ) {
+
+    if (
+      !review.has(question)
+    ) {
+
       review.set(
         question,
         new Set()
       );
     }
 
+
     if (wrong) {
+
       review
         .get(question)
         .add(wrong);
     }
 
+
     renderReview();
   }
 
+
   function renderReview() {
-    if (!review.size) {
+
+    if (
+      !review.size
+    ) {
+
       $('review').textContent =
         'No misses yet.';
+
       return;
     }
 
+
     $('review').innerHTML =
+
       [...review]
-        .map(([question, selections]) => {
-          return `
-            <div>
-              <b>${question}</b>
-              ${
-                selections.size
-                  ? ` — selected: ${
-                      [...selections].join(', ')
-                    }`
-                  : ' — skipped / review'
-              }
-            </div>
-          `;
-        })
+
+        .map(
+          ([
+            question,
+            selections
+          ]) => {
+
+            if (
+              selections.size
+            ) {
+
+              return `
+
+                <div>
+
+                  <b>
+                    ${question}
+                  </b>
+
+                  — selected:
+
+                  ${
+                    [...selections]
+                      .join(', ')
+                  }
+
+                </div>
+              `;
+            }
+
+
+            return `
+
+              <div>
+
+                <b>
+                  ${question}
+                </b>
+
+                — skipped / review
+
+              </div>
+            `;
+          }
+        )
+
         .join('');
   }
 
   /*
-   * SCORE / PROGRESS
+   * ------------------------------------------------------------
+   * SCORE
+   * ------------------------------------------------------------
    */
+
   function updateStats() {
+
     $('score').textContent =
-      correct + ' / ' + attempts;
+      correct +
+      ' / ' +
+      attempts;
+
 
     $('accuracy').textContent =
+
       attempts
+
         ? Math.round(
-            correct / attempts * 100
+            correct /
+            attempts *
+            100
           ) + '%'
+
         : '—';
   }
 
+  /*
+   * ------------------------------------------------------------
+   * PROGRESS
+   * ------------------------------------------------------------
+   */
+
   function updateProgress() {
+
+    const currentPool =
+      pool();
+
+
     const numberCompleted =
-      pool().filter(
+      currentPool.filter(
         item =>
-          completed.has(item.name)
+          completed.has(
+            item.name
+          )
       ).length;
 
+
     $('progress').textContent =
+
       numberCompleted +
+
       ' of ' +
-      pool().length +
+
+      currentPool.length +
+
       ' completed';
   }
 
   /*
-   * RESTART
+   * ------------------------------------------------------------
+   * RESTART QUIZ
+   *
+   * Review list intentionally remains.
+   * ------------------------------------------------------------
    */
+
   function restart() {
+
     completed.clear();
 
+
     attempts = 0;
+
     correct = 0;
+
     target = null;
+
     wrongName = null;
 
+
     updateStats();
+
     refresh();
 
-    if (mode === 'quiz') {
+
+    if (
+      mode === 'quiz'
+    ) {
+
       newQuestion();
     }
   }
 
   /*
+   * ------------------------------------------------------------
    * STUDY LIST
+   * ------------------------------------------------------------
    */
+
   function renderStudyLists() {
+
     $('studyLists').innerHTML =
-      GROUPS.map(([group, label]) => {
 
-        const names =
-          items(group)
-            .map(item => item.name)
-            .sort(
-              (a, b) =>
-                a.localeCompare(b)
-            );
+      GROUPS
 
-        return `
-          <section>
-            <h3>
-              ${label}
-              <small>
-                (${names.length})
-              </small>
-            </h3>
+        .map(
+          ([group, label]) => {
 
-            <ol>
-              ${
-                names
-                  .map(
-                    name =>
-                      `<li>${name}</li>`
-                  )
-                  .join('')
-              }
-            </ol>
-          </section>
-        `;
-      }).join('');
+            const names =
+
+              items(group)
+
+                .map(
+                  item =>
+                    item.name
+                )
+
+                .sort(
+                  (a, b) =>
+                    a.localeCompare(b)
+                );
+
+
+            return `
+
+              <section>
+
+                <h3>
+
+                  ${label}
+
+                  <small>
+                    (${names.length})
+                  </small>
+
+                </h3>
+
+                <ol>
+
+                  ${
+                    names
+
+                      .map(
+                        name =>
+                          `<li>${name}</li>`
+                      )
+
+                      .join('')
+                  }
+
+                </ol>
+
+              </section>
+            `;
+          }
+        )
+
+        .join('');
   }
 
   /*
-   * MAP INITIALIZATION
+   * ============================================================
+   * MAP LOAD
+   * ============================================================
    */
-  map.on('load', async () => {
-    await loadGIS();
 
-    /*
-     * Every quiz category now uses the same point layer.
-     * There is no route-hit / route-open / route-done layer.
-     */
-    syncPoints();
-    syncLabels();
-    renderStudyLists();
+  map.on(
+    'load',
+    async () => {
 
-    map.on(
-      'click',
-      'places',
-      event => {
+      /*
+       * Load Census reference boundaries.
+       */
 
-        const name =
-          event.features?.[0]
-            ?.properties?.name;
+      await loadGIS();
 
-        if (!name) {
-          return;
-        }
 
-        /*
-         * Mobile Study Mode:
-         * tapping a dot shows its information
-         * in the floating map overlay.
-         */
-        if (
-          mode === 'study' &&
-          isPhone()
-        ) {
-          const item =
-            pool().find(
-              entry =>
-                entry.name === name
-            ) ||
-            DATA.find(
-              entry =>
-                entry.name === name
-            ) ||
-            HIGHWAY_POINTS.find(
-              entry =>
-                entry.name === name
-            );
+      /*
+       * Create ONE point source and ONE point layer.
+       *
+       * Every location category uses this.
+       */
 
-          if (item) {
-            updateMobileOverlay(item);
+      syncPoints();
+
+      syncLabels();
+
+      renderStudyLists();
+
+
+      /*
+       * --------------------------------------------------------
+       * CLICK ANY LOCATION DOT
+       *
+       * City dot?
+       * Same handler.
+       *
+       * Alamo?
+       * Same handler.
+       *
+       * I-80?
+       * Same handler.
+       *
+       * Ygnacio Valley Road?
+       * Same handler.
+       *
+       * Bridge?
+       * Same handler.
+       *
+       * Water?
+       * Same handler.
+       * --------------------------------------------------------
+       */
+
+      map.on(
+        'click',
+        'places',
+        event => {
+
+          const feature =
+            event.features?.[0];
+
+
+          if (!feature) {
+            return;
           }
 
-          return;
+
+          const name =
+            feature.properties?.name;
+
+
+          if (!name) {
+            return;
+          }
+
+
+          /*
+           * STUDY MODE
+           */
+
+          if (
+            mode === 'study'
+          ) {
+
+            if (
+              isPhone()
+            ) {
+
+              const item =
+                DATA.find(
+                  entry =>
+                    entry.name ===
+                    name
+                );
+
+
+              if (item) {
+
+                updateMobileOverlay(
+                  item
+                );
+              }
+            }
+
+
+            return;
+          }
+
+
+          /*
+           * QUIZ MODE
+           */
+
+          handleChoice(
+            name
+          );
         }
+      );
 
-        /*
-         * Desktop Study Mode ignores quiz scoring.
-         * Quiz Mode passes the dot into the normal
-         * answer handler.
-         */
-        handleChoice(name);
-      }
-    );
 
-    /*
-     * Pointer cursor over dots on desktop.
-     */
-    map.on(
-      'mouseenter',
-      'places',
-      () => {
-        map.getCanvas().style.cursor =
-          'pointer';
-      }
-    );
+      /*
+       * Mouse pointer
+       */
 
-    map.on(
-      'mouseleave',
-      'places',
-      () => {
-        map.getCanvas().style.cursor =
-          '';
-      }
-    );
-  });
+      map.on(
+        'mouseenter',
+        'places',
+        () => {
+
+          map.getCanvas()
+            .style.cursor =
+              'pointer';
+        }
+      );
+
+
+      map.on(
+        'mouseleave',
+        'places',
+        () => {
+
+          map.getCanvas()
+            .style.cursor =
+              '';
+        }
+      );
+    }
+  );
 
   /*
-   * HANDLE QUIZ SELECTION
+   * ------------------------------------------------------------
+   * HANDLE QUIZ ANSWER
+   * ------------------------------------------------------------
    */
-  function handleChoice(name) {
+
+  function handleChoice(
+    name
+  ) {
+
     if (
-      mode !== 'quiz' ||
-      !target
+      mode !== 'quiz'
     ) {
+
       return;
     }
 
-    if (completed.has(name)) {
+
+    if (!target) {
+
       return;
     }
+
+
+    if (
+      completed.has(name)
+    ) {
+
+      return;
+    }
+
 
     attempts++;
 
-    if (name === target.name) {
+
+    if (
+      name === target.name
+    ) {
+
       correct++;
 
-      completed.add(name);
 
-      wrongName = null;
-
-      $('feedback').innerHTML =
-        '<span class="good">' +
-        'Correct! ' +
-        name +
-        ' is complete.' +
-        '</span>';
-
-      refresh();
-      updateStats();
-
-      setTimeout(
-        newQuestion,
-        650
-      );
-
-    } else {
-      markReview(
-        target.name,
+      completed.add(
         name
       );
 
-      wrongName = name;
+
+      wrongName =
+        null;
+
 
       $('feedback').innerHTML =
-        '<span class="bad">' +
-        'That was ' +
+
+        '<span class="good">' +
+
+        'Correct! ' +
+
         name +
-        '. Try again.' +
+
+        ' is complete.' +
+
         '</span>';
 
-      refresh();
+
       updateStats();
 
-      setTimeout(() => {
-        wrongName = null;
-        syncPoints();
-      }, 500);
+      refresh();
+
+
+      setTimeout(
+        () => {
+
+          newQuestion();
+
+        },
+        650
+      );
+
+
+      return;
     }
+
+    /*
+     * WRONG ANSWER
+     */
+
+    markReview(
+      target.name,
+      name
+    );
+
+
+    wrongName =
+      name;
+
+
+    $('feedback').innerHTML =
+
+      '<span class="bad">' +
+
+      'That was ' +
+
+      name +
+
+      '. Try again.' +
+
+      '</span>';
+
+
+    updateStats();
+
+    refresh();
+
+
+    setTimeout(
+      () => {
+
+        wrongName =
+          null;
+
+
+        if (
+          map.getSource('places')
+        ) {
+
+          map
+            .getSource('places')
+            .setData(
+              pointGeo()
+            );
+        }
+
+      },
+      500
+    );
   }
 
   /*
-   * BUTTONS
+   * ============================================================
+   * BUTTON EVENTS
+   * ============================================================
    */
+
   $('study').onclick =
-    () => setMode('study');
+    () => {
+
+      setMode(
+        'study'
+      );
+    };
+
 
   $('quiz').onclick =
-    () => setMode('quiz');
+    () => {
+
+      setMode(
+        'quiz'
+      );
+    };
+
 
   $('listMode').onclick =
-    () => setMode('list');
+    () => {
+
+      setMode(
+        'list'
+      );
+    };
+
 
   $('newq').onclick =
-    newQuestion;
+    () => {
 
-  $('skip').onclick = () => {
-    if (target) {
+      newQuestion();
+    };
+
+
+  $('skip').onclick =
+    () => {
+
+      if (!target) {
+        return;
+      }
+
+
       markReview(
         target.name,
         null
       );
 
+
       newQuestion();
-    }
-  };
+    };
+
 
   $('restart').onclick =
-    restart;
+    () => {
 
-  $('clearReview').onclick = () => {
-    review.clear();
-    renderReview();
-  };
+      restart();
+    };
+
+
+  $('clearReview').onclick =
+    () => {
+
+      review.clear();
+
+      renderReview();
+    };
 
   /*
-   * QUIZ-POOL CHECKBOXES
+   * ------------------------------------------------------------
+   * CATEGORY CHECKBOX EVENTS
+   * ------------------------------------------------------------
    */
+
   document
-    .querySelectorAll('[data-group]')
-    .forEach(input => {
+    .querySelectorAll(
+      '[data-group]'
+    )
+    .forEach(
+      input => {
 
-      input.onchange = () => {
-        refresh();
+        input.addEventListener(
+          'change',
+          () => {
 
-        if (mode === 'quiz') {
-          newQuestion();
-        }
-      };
-    });
+            refresh();
+
+
+            if (
+              mode === 'quiz'
+            ) {
+
+              /*
+               * If the existing target belongs
+               * to a category that was unchecked,
+               * choose a new target.
+               */
+
+              const currentNames =
+                new Set(
+                  pool().map(
+                    item =>
+                      item.name
+                  )
+                );
+
+
+              if (
+                !target ||
+                !currentNames.has(
+                  target.name
+                )
+              ) {
+
+                newQuestion();
+
+              } else {
+
+                updateMobileOverlay();
+              }
+            }
+          }
+        );
+      }
+    );
 
   /*
-   * LABEL CHECKBOX
+   * ------------------------------------------------------------
+   * TRAINER LABEL CHECKBOX
+   * ------------------------------------------------------------
    */
-  $('labels').onchange =
-    syncLabels;
+
+  $('labels').addEventListener(
+    'change',
+    () => {
+
+      syncLabels();
+    }
+  );
 
   /*
-   * MAP BOUNDARY CONTROLS
+   * ------------------------------------------------------------
+   * CITY BOUNDARY CHECKBOX
+   * ------------------------------------------------------------
    */
-  $('cityBounds').onchange =
+
+  $('cityBounds').addEventListener(
+    'change',
     event => {
 
-      if (!boundariesLoaded) {
+      if (
+        !boundariesLoaded
+      ) {
+
         return;
       }
+
+
+      const visibility =
+
+        event.target.checked
+
+          ? 'visible'
+
+          : 'none';
+
 
       [
         'city-fill',
         'city-outline'
-      ].forEach(id => {
+      ].forEach(
+        id => {
+
+          if (
+            map.getLayer(id)
+          ) {
+
+            map.setLayoutProperty(
+              id,
+              'visibility',
+              visibility
+            );
+          }
+        }
+      );
+    }
+  );
+
+  /*
+   * ------------------------------------------------------------
+   * REGIONAL COUNTY BOUNDARY CHECKBOX
+   * ------------------------------------------------------------
+   */
+
+  $('regionalCountyBounds')
+    .addEventListener(
+      'change',
+      event => {
+
+        if (
+          !boundariesLoaded
+        ) {
+
+          return;
+        }
+
+
+        if (
+          !map.getLayer(
+            'regional-county-outline'
+          )
+        ) {
+
+          return;
+        }
+
 
         map.setLayoutProperty(
-          id,
+
+          'regional-county-outline',
+
           'visibility',
+
           event.target.checked
             ? 'visible'
             : 'none'
         );
+      }
+    );
+
+  /*
+   * ------------------------------------------------------------
+   * CONTRA COSTA COUNTY BOUNDARY CHECKBOX
+   * ------------------------------------------------------------
+   */
+
+  $('countyBound')
+    .addEventListener(
+      'change',
+      event => {
+
+        if (
+          !boundariesLoaded
+        ) {
+
+          return;
+        }
+
+
+        if (
+          !map.getLayer(
+            'county-outline'
+          )
+        ) {
+
+          return;
+        }
+
+
+        map.setLayoutProperty(
+
+          'county-outline',
+
+          'visibility',
+
+          event.target.checked
+            ? 'visible'
+            : 'none'
+        );
+      }
+    );
+
+  /*
+   * ------------------------------------------------------------
+   * CITY POLYGON OPACITY
+   * ------------------------------------------------------------
+   */
+
+  $('opacity')
+    .addEventListener(
+      'input',
+      event => {
+
+        if (
+          !boundariesLoaded
+        ) {
+
+          return;
+        }
+
+
+        if (
+          !map.getLayer(
+            'city-fill'
+          )
+        ) {
+
+          return;
+        }
+
+
+        map.setPaintProperty(
+
+          'city-fill',
+
+          'fill-opacity',
+
+          Number(
+            event.target.value
+          ) / 100
+        );
+      }
+    );
+
+  /*
+   * ------------------------------------------------------------
+   * RESET MAP
+   * ------------------------------------------------------------
+   */
+
+  $('reset').onclick =
+    () => {
+
+      map.flyTo({
+
+        center: [
+          -121.98,
+          37.94
+        ],
+
+        zoom:
+          9.55
       });
     };
 
-  $('regionalCountyBounds').onchange =
-    event => {
-
-      if (!boundariesLoaded) {
-        return;
-      }
-
-      map.setLayoutProperty(
-        'regional-county-outline',
-        'visibility',
-        event.target.checked
-          ? 'visible'
-          : 'none'
-      );
-    };
-
-  $('countyBound').onchange =
-    event => {
-
-      if (!boundariesLoaded) {
-        return;
-      }
-
-      map.setLayoutProperty(
-        'county-outline',
-        'visibility',
-        event.target.checked
-          ? 'visible'
-          : 'none'
-      );
-    };
-
   /*
-   * CITY POLYGON OPACITY
+   * ------------------------------------------------------------
+   * WINDOW RESIZE / MOBILE
+   * ------------------------------------------------------------
    */
-  $('opacity').oninput =
-    event => {
 
-      if (!boundariesLoaded) {
-        return;
-      }
-
-      map.setPaintProperty(
-        'city-fill',
-        'fill-opacity',
-        Number(event.target.value) / 100
-      );
-    };
-
-  /*
-   * RESET MAP POSITION
-   */
-  $('reset').onclick = () => {
-    map.flyTo({
-      center: [-121.98, 37.94],
-      zoom: 9.55
-    });
-  };
-
-  /*
-   * RESPONSIVE MOBILE BEHAVIOR
-   *
-   * Desktop remains unchanged.
-   * Phone-sized browser windows receive
-   * larger dot targets and the mobile overlay.
-   */
   window.addEventListener(
     'resize',
     () => {
 
       map.resize();
 
+
       updateMobileOverlay();
 
-      if (map.getLayer('places')) {
+
+      if (
+        map.getLayer('places')
+      ) {
+
         map.setPaintProperty(
+
           'places',
+
           'circle-radius',
+
           isPhone()
             ? 8.5
             : 6.5
@@ -1150,9 +2179,17 @@
   );
 
   /*
+   * ------------------------------------------------------------
    * INITIAL UI
+   * ------------------------------------------------------------
    */
+
+  updateStats();
+
+  updateProgress();
+
   renderReview();
+
   renderStudyLists();
 
 })();
