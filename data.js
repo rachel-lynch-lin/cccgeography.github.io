@@ -484,7 +484,7 @@ window.LOCATIONS = [
 
   {
     name: "Los Medanos College",
-    lat: 38.006006015755005, -121.86095793291612,
+    lat: 38.006006015755005,
     lon: -121.86095793291612,
     group: "supplemental"
    },
