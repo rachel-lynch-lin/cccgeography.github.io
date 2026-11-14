@@ -999,85 +999,85 @@ window.LOCATIONS = [
 
   {
     name: "Cypress Road",
-    lat: 37.997,
-    lon: -121.699,
+    lat: 37.99067552070853, 
+    lon: -121.68592155179346,
     group: "road"
   },
 
   {
     name: "Danville Boulevard",
-    lat: 37.845,
-    lon: -122.027,
+    lat: 37.84202522425031,
+    lon: -122.02571776962526,
     group: "road"
   },
 
   {
     name: "Deer Valley Road",
-    lat: 37.948,
-    lon: -121.793,
+    lat: 37.948329927785146, 
+    lon: -121.77708913958253,
     group: "road"
   },
 
   {
     name: "Discovery Bay Boulevard",
-    lat: 37.904,
-    lon: -121.603,
+    lat: 37.894450275682026, 
+    lon: -121.60224898457922,
     group: "road"
   },
 
   {
     name: "Dougherty Road",
-    lat: 37.754,
-    lon: -121.914,
+    lat: 37.761328679332465, 
+    lon: -121.92123123884849,
     group: "road"
   },
 
   {
     name: "East 14th Street",
-    lat: 38.018,
-    lon: -121.889,
+    lat: 38.020845092160606, 
+    lon: -121.87717430969778,
     group: "road"
   },
 
   {
     name: "East 18th Street",
-    lat: 38.004,
-    lon: -121.789,
+    lat: 38.004946811335856, 
+    lon: -121.76334735614708,
     group: "road"
   },
 
   {
     name: "Franklin Canyon Road",
-    lat: 38.02,
-    lon: -122.198,
+    lat: 38.00360266900316, 
+    lon: -122.16853865716679,
     group: "road"
   },
 
   {
     name: "Kirker Pass Road",
-    lat: 37.983,
-    lon: -121.934,
+    lat: 37.97356202548616, 
+    lon: -121.9171020867867,
     group: "road"
   },
 
   {
     name: "Knightsen Avenue",
-    lat: 37.968,
-    lon: -121.669,
+    lat: 37.985607678140454, 
+    lon: -121.66839918825957,
     group: "road"
   },
 
   {
     name: "Main Street",
-    lat: 37.997,
-    lon: -121.712,
+    lat: 37.997836990976815, 
+    lon: -121.71284758113708,
     group: "road"
   },
 
   {
     name: "Marsh Creek Road",
-    lat: 37.905,
-    lon: -121.837,
+    lat: 37.89461221922166, 
+    lon: -121.79603730763772,
     group: "road"
   },
 
@@ -1090,106 +1090,106 @@ window.LOCATIONS = [
 
   {
     name: "Pacheco Boulevard",
-    lat: 37.993,
-    lon: -122.071,
+    lat: 37.987816723891186, 
+    lon: -122.07124676717167,
     group: "road"
   },
 
   {
     name: "Parker Avenue",
-    lat: 38.032,
-    lon: -122.251,
+    lat: 38.03369010199208, 
+    lon: -122.26725418935534,
     group: "road"
   },
 
   {
     name: "Port Chicago Highway",
-    lat: 38.015,
-    lon: -122.03,
+    lat: 38.00409516676133, 
+    lon: -122.02428153354113,
     group: "road"
   },
 
   {
     name: "Railroad Avenue",
-    lat: 38.021,
-    lon: -121.884,
+    lat: 38.02015476536405, 
+    lon: -121.88815206267829
     group: "road"
   },
 
   {
     name: "Reliez Valley Road",
-    lat: 37.935,
-    lon: -122.108,
+    lat: 37.93396760962587, 
+    lon: -122.10657306750073,
     group: "road"
   },
 
   {
     name: "Richmond Parkway",
-    lat: 37.981,
-    lon: -122.357,
+    lat: 37.960836601452634, 
+    lon: -122.37376917356568,
     group: "road"
   },
 
   {
     name: "San Pablo Avenue",
-    lat: 37.973,
-    lon: -122.348,
+    lat: 37.96480414856683, 
+    lon: -122.34517831906659,
     group: "road"
   },
 
   {
     name: "San Pablo Dam Road",
-    lat: 37.963,
-    lon: -122.318,
+    lat: 37.961130575121175, 
+    lon: -122.28457967899537,
     group: "road"
   },
 
   {
     name: "San Ramon Valley Boulevard",
-    lat: 37.795,
-    lon: -121.997,
+    lat: 37.78361825994172, 
+    lon: -121.97975379803724,
     group: "road"
   },
 
   {
     name: "Sellers Avenue",
-    lat: 37.939,
-    lon: -121.682,
+    lat: 37.94080224223364, 
+    lon: -121.67791231730666,
     group: "road"
   },
 
   {
     name: "Treat Boulevard",
-    lat: 37.939,
-    lon: -122.026,
+    lat: 37.94840005901516, 
+    lon: -122.00729964237983,
     group: "road"
   },
 
   {
     name: "Vasco Road",
-    lat: 37.888,
-    lon: -121.722,
+    lat: 37.84919242796401, 
+    lon: -121.64686596450294,
     group: "road"
   },
 
   {
     name: "West 10th Street",
-    lat: 38.028,
-    lon: -121.902,
+    lat: 38.029470467604405, 
+    lon: -121.89635127086149,
     group: "road"
   },
 
   {
     name: "Willow Pass Road",
-    lat: 38.028,
-    lon: -121.961,
+    lat: 38.02676608501634, 
+    lon: -121.94985274275379,
     group: "road"
   },
 
   {
     name: "Ygnacio Valley Road",
-    lat: 37.93,
-    lon: -122.025,
+    lat: 37.937328133117866, 
+    lon: -121.99765220075689,
     group: "road"
   },
 
