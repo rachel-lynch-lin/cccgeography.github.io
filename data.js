@@ -1112,7 +1112,7 @@ window.LOCATIONS = [
   {
     name: "Railroad Avenue",
     lat: 38.02015476536405, 
-    lon: -121.88815206267829
+    lon: -121.88815206267829,
     group: "road"
   },
 
